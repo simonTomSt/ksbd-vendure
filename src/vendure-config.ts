@@ -17,6 +17,7 @@ import path from 'path';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
 const serverPort = +process.env.PORT || 3001;
+const storeFrontUrl = process.env.STORE_FRONT_URL || 'http://localhost:3000';
 
 export const config: VendureConfig = {
   apiOptions: {
@@ -40,7 +41,7 @@ export const config: VendureConfig = {
       : {}),
   },
   authOptions: {
-    tokenMethod: ['bearer', 'cookie'],
+    tokenMethod: ['bearer'],
     superadminCredentials: {
       identifier: process.env.SUPERADMIN_USERNAME,
       password: process.env.SUPERADMIN_PASSWORD,
@@ -48,6 +49,7 @@ export const config: VendureConfig = {
     cookieOptions: {
       secret: process.env.COOKIE_SECRET,
     },
+    requireVerification: true,
   },
   dbConnectionOptions: {
     type: 'postgres',
@@ -102,21 +104,28 @@ export const config: VendureConfig = {
     DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
     DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
     EmailPlugin.init({
-      devMode: true,
+      devMode: IS_DEV ? true : undefined,
       outputPath: path.join(__dirname, '../static/email/test-emails'),
       route: 'mailbox',
       handlers: defaultEmailHandlers,
       templateLoader: new FileBasedTemplateLoader(
         path.join(__dirname, '../static/email/templates')
       ),
+      transport: {
+        type: 'smtp',
+        host: process.env.EMAIL_HOST,
+        port: +process.env.EMAIL_PORT!,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      },
       globalTemplateVars: {
         // The following variables will change depending on your storefront implementation.
-        // Here we are assuming a storefront running at http://localhost:8080.
-        fromAddress: '"example" <noreply@example.com>',
-        verifyEmailAddressUrl: 'http://localhost:8080/verify',
-        passwordResetUrl: 'http://localhost:8080/password-reset',
-        changeEmailAddressUrl:
-          'http://localhost:8080/verify-email-address-change',
+        fromAddress: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
+        verifyEmailAddressUrl: `${storeFrontUrl}/verify`,
+        passwordResetUrl: `${storeFrontUrl}/password-reset`,
+        changeEmailAddressUrl: `${storeFrontUrl}/verify-email-change`,
       },
     }),
     AdminUiPlugin.init({
