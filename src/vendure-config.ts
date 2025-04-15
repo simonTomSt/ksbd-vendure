@@ -4,13 +4,17 @@ import {
   DefaultSearchPlugin,
   VendureConfig,
   LanguageCode,
+  DefaultAssetNamingStrategy,
 } from '@vendure/core';
 import {
   defaultEmailHandlers,
   EmailPlugin,
   FileBasedTemplateLoader,
 } from '@vendure/email-plugin';
-import { AssetServerPlugin } from '@vendure/asset-server-plugin';
+import {
+  AssetServerPlugin,
+  configureS3AssetStorage,
+} from '@vendure/asset-server-plugin';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import 'dotenv/config';
 import path from 'path';
@@ -41,7 +45,7 @@ export const config: VendureConfig = {
       : {}),
   },
   authOptions: {
-    tokenMethod: ['bearer'],
+    tokenMethod: ['bearer', 'cookie'],
     superadminCredentials: {
       identifier: process.env.SUPERADMIN_USERNAME,
       password: process.env.SUPERADMIN_PASSWORD,
@@ -95,11 +99,21 @@ export const config: VendureConfig = {
   plugins: [
     AssetServerPlugin.init({
       route: 'assets',
-      assetUploadDir: path.join(__dirname, '../static/assets'),
-      // For local dev, the correct value for assetUrlPrefix should
-      // be guessed correctly, but for production it will usually need
-      // to be set manually to match your production url.
-      assetUrlPrefix: IS_DEV ? undefined : 'https://www.my-shop.com/assets/',
+      assetUploadDir: path.join(__dirname, 'assets'),
+      namingStrategy: new DefaultAssetNamingStrategy(),
+      storageStrategyFactory: configureS3AssetStorage({
+        bucket: process.env.MINIO_BUCKET as string,
+        credentials: {
+          accessKeyId: process.env.MINIO_ACCESS_KEY_ID as string,
+          secretAccessKey: process.env.MINIO_SECRET_ACCESS_KEY as string,
+        },
+        nativeS3Configuration: {
+          endpoint: process.env.MINIO_ENDPOINT as string,
+          forcePathStyle: true,
+          signatureVersion: 'v4',
+          region: process.env.MINIO_REGION as string,
+        },
+      }),
     }),
     DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
     DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
