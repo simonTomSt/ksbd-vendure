@@ -95,6 +95,28 @@ export const config: VendureConfig = {
         ui: { component: 'text-form-input' },
       },
     ],
+    ProductVariant: [
+      {
+        name: 'description',
+        type: 'text',
+        label: [
+          { languageCode: LanguageCode.en, value: 'Description' },
+          { languageCode: LanguageCode.pl, value: 'Opis' },
+        ],
+        description: [
+          {
+            languageCode: LanguageCode.en,
+            value: 'Detailed description of the product variant',
+          },
+          {
+            languageCode: LanguageCode.pl,
+            value: 'Szczegółowy opis wariantu produktu',
+          },
+        ],
+        nullable: true,
+        ui: { component: 'rich-text-form-input' },
+      },
+    ],
   },
   plugins: [
     AssetServerPlugin.init({
